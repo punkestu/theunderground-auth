@@ -1,7 +1,6 @@
 package login
 
 import (
-	"errors"
 	"github.com/gofiber/fiber/v2"
 	"github.com/punkestu/theunderground-auth/internal/entity"
 	"github.com/punkestu/theunderground-auth/internal/entity/request"
@@ -26,7 +25,10 @@ var dummyUser1 = &entity.User{
 	Password: "test1234",
 	Key:      "user1234",
 }
-var UserNotFound = entity.OneError(http.StatusBadRequest, errors.New("user Not Found"))
+var IdentifierNotFound = response.Error{
+	Field:   "Identifier",
+	Message: "Identifier not found",
+}
 
 func TestLogin(t *testing.T) {
 	app = fiber.New()
@@ -37,10 +39,31 @@ func TestLogin(t *testing.T) {
 	t.Run("Success Using Email", LoginWithEmailSuccess)
 	t.Run("Success Using Username", LoginWithUsernameSuccess)
 	t.Run("Failed User Not Found", LoginUserNotFoundFailed)
+	t.Run("Failed Wrong Password", LoginWrongPasswordFailed)
+}
+
+func LoginWrongPasswordFailed(t *testing.T) {
+	r.On("GetByUsernameOrEmail", "minerva").Return(&dummyUser1, entity.NoError())
+	req, err := util.SendRequest(http.MethodPost, endPoint, request.Login{
+		Identifier: "minerva",
+		Password:   "test123",
+	}, nil)
+	assert.Nil(t, err)
+
+	res, err := app.Test(req)
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+
+	var resBody response.Errors
+	err = util.GetBody(res, &resBody, nil)
+	assert.Nil(t, err)
+
+	assert.Len(t, resBody.Errors, 1)
+	assert.Equal(t, resBody.Errors[0].Field, "Password")
 }
 
 func LoginUserNotFoundFailed(t *testing.T) {
-	r.On("GetByUsernameOrEmail", "min").Return(nil, UserNotFound)
+	r.On("GetByUsernameOrEmail", "min").Return(nil, entity.OneError(http.StatusBadRequest, IdentifierNotFound.GenError()))
 	req, err := util.SendRequest(http.MethodPost, endPoint, request.Login{
 		Identifier: "min",
 		Password:   "test1234",
@@ -52,8 +75,12 @@ func LoginUserNotFoundFailed(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
 
 	var resBody response.Errors
-	err = util.GetBody(res, &resBody, &util.GetBodyOptions{Verbose: true})
+	err = util.GetBody(res, &resBody, nil)
 	assert.Nil(t, err)
+
+	assert.Len(t, resBody.Errors, 1)
+	assert.Equal(t, resBody.Errors[0].Field, IdentifierNotFound.Field)
+	assert.Equal(t, resBody.Errors[0].Message, IdentifierNotFound.Message)
 }
 
 func LoginWithEmailSuccess(t *testing.T) {
