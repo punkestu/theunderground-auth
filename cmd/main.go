@@ -15,6 +15,7 @@ func main() {
 	h := handler.NewUserHandler(u)
 
 	app.Post("/login", h.Login)
+	app.Post("/key", h.LoginWithKey)
 	app.Post("/register", h.Register)
 
 	err := app.Listen(":8000")

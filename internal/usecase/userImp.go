@@ -20,7 +20,7 @@ func (u UserUsecase) Login(r request.Login) (string, entity.Error) {
 	if r.IdentifierType == request.KeyType {
 		user, err := u.GetByKey(r.Identifier)
 		if err.IsError() {
-			return "", entity.NoError()
+			return "", err
 		}
 		return user.ID + user.Key, entity.NoError()
 	} else if r.IdentifierType == request.UsernameOrEmailType {

@@ -6,6 +6,7 @@ import (
 	"github.com/punkestu/theunderground-auth/internal/entity/response"
 	"github.com/punkestu/theunderground-auth/internal/usecase"
 	"net/http"
+	"strings"
 )
 
 type User struct {
@@ -27,6 +28,30 @@ func (u User) Login(c *fiber.Ctx) error {
 		return c.Status(err.Status).JSON(response.NewErrors(err))
 	}
 	// add token generator here
+	return c.JSON(response.AuthSuccess{Token: res})
+}
+
+func (u User) LoginWithKey(c *fiber.Ctx) error {
+	f, fErr := c.FormFile("credential")
+	if fErr != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fErr)
+	}
+	buffer, fErr := f.Open()
+	if fErr != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fErr)
+	}
+	token := make([]byte, 256)
+	_, fErr = buffer.Read(token)
+	if fErr != nil {
+		return c.Status(http.StatusInternalServerError).JSON(fErr)
+	}
+	res, err := u.user.Login(request.Login{
+		IdentifierType: request.KeyType,
+		Identifier:     strings.TrimRight(string(token), "\x00"),
+	})
+	if err.IsError() {
+		return c.Status(err.Status).JSON(response.NewErrors(err))
+	}
 	return c.JSON(response.AuthSuccess{Token: res})
 }
 
