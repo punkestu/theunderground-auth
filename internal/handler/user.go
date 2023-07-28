@@ -2,6 +2,7 @@ package handler
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/punkestu/theunderground-auth/internal/entity"
 	"github.com/punkestu/theunderground-auth/internal/entity/request"
 	"github.com/punkestu/theunderground-auth/internal/entity/response"
 	"github.com/punkestu/theunderground-auth/internal/usecase"
@@ -20,7 +21,9 @@ func NewUserHandler(user usecase.User) *User {
 func (u User) Login(c *fiber.Ctx) error {
 	var r request.Login
 	if err := c.BodyParser(&r); err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(err)
+		return c.Status(http.StatusInternalServerError).JSON(response.NewErrors(
+			entity.OneError(http.StatusInternalServerError, err),
+		))
 	}
 	r.IdentifierType = request.UsernameOrEmailType
 	res, err := u.user.Login(r)
@@ -34,16 +37,22 @@ func (u User) Login(c *fiber.Ctx) error {
 func (u User) LoginWithKey(c *fiber.Ctx) error {
 	f, fErr := c.FormFile("credential")
 	if fErr != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fErr)
+		return c.Status(http.StatusInternalServerError).JSON(response.NewErrors(
+			entity.OneError(http.StatusInternalServerError, fErr),
+		))
 	}
 	buffer, fErr := f.Open()
 	if fErr != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fErr)
+		return c.Status(http.StatusInternalServerError).JSON(response.NewErrors(
+			entity.OneError(http.StatusInternalServerError, fErr),
+		))
 	}
 	token := make([]byte, 256)
 	_, fErr = buffer.Read(token)
 	if fErr != nil {
-		return c.Status(http.StatusInternalServerError).JSON(fErr)
+		return c.Status(http.StatusInternalServerError).JSON(response.NewErrors(
+			entity.OneError(http.StatusInternalServerError, fErr),
+		))
 	}
 	res, err := u.user.Login(request.Login{
 		IdentifierType: request.KeyType,
@@ -58,11 +67,13 @@ func (u User) LoginWithKey(c *fiber.Ctx) error {
 func (u User) Register(c *fiber.Ctx) error {
 	var r request.Register
 	if err := c.BodyParser(&r); err != nil {
-		return c.Status(http.StatusInternalServerError).JSON(err)
+		return c.Status(http.StatusInternalServerError).JSON(response.NewErrors(
+			entity.OneError(http.StatusInternalServerError, err),
+		))
 	}
 	res, err := u.user.Register(r)
 	if err.IsError() {
-		return c.Status(err.Status).JSON(err.Errors)
+		return c.Status(err.Status).JSON(response.NewErrors(err))
 	}
 	// add token generator here
 	return c.JSON(response.AuthSuccess{Token: res})

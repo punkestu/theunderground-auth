@@ -47,7 +47,7 @@ func KeyNotFoundFailed(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, http.StatusNotFound, res.StatusCode)
 
-	var resBody response.AuthSuccess
+	var resBody response.Errors
 	err = util.GetBody(res, &resBody, nil)
 	assert.Nil(t, err)
 }
