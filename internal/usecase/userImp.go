@@ -22,7 +22,7 @@ func (u UserUsecase) Login(r request.Login) (string, entity.Error) {
 		if err.IsError() {
 			return "", err
 		}
-		return user.ID + user.Key, entity.NoError()
+		return user.ID + "|" + user.Key, entity.NoError()
 	} else if r.IdentifierType == request.UsernameOrEmailType {
 		user, err := u.GetByUsernameOrEmail(r.Identifier)
 		if err.IsError() {
@@ -31,7 +31,7 @@ func (u UserUsecase) Login(r request.Login) (string, entity.Error) {
 		if user.Password != r.Password {
 			return "", entity.OneError(http.StatusNotFound, errors.New("Password:Password is wrong"))
 		}
-		return user.ID + "-" + user.Key, entity.NoError()
+		return user.ID + "|" + user.Key, entity.NoError()
 	} else {
 		return "", entity.OneError(http.StatusBadRequest, errors.New("identifier not valid"))
 	}
@@ -50,5 +50,5 @@ func (u UserUsecase) Register(r request.Register) (string, entity.Error) {
 	if err.IsError() {
 		return "", err
 	}
-	return user.ID + "-" + user.Key, entity.NoError()
+	return user.ID + "|" + user.Key, entity.NoError()
 }

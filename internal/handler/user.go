@@ -5,6 +5,7 @@ import (
 	"github.com/punkestu/theunderground-auth/internal/entity"
 	"github.com/punkestu/theunderground-auth/internal/entity/request"
 	"github.com/punkestu/theunderground-auth/internal/entity/response"
+	"github.com/punkestu/theunderground-auth/internal/lib"
 	"github.com/punkestu/theunderground-auth/internal/usecase"
 	"net/http"
 	"strings"
@@ -12,10 +13,11 @@ import (
 
 type User struct {
 	user usecase.User
+	jwt  lib.Jwt
 }
 
-func NewUserHandler(user usecase.User) *User {
-	return &User{user: user}
+func NewUserHandler(user usecase.User, jwt lib.Jwt) *User {
+	return &User{user: user, jwt: jwt}
 }
 
 func (u User) Login(c *fiber.Ctx) error {
@@ -30,8 +32,7 @@ func (u User) Login(c *fiber.Ctx) error {
 	if err.IsError() {
 		return c.Status(err.Status).JSON(response.NewErrors(err))
 	}
-	// add token generator here
-	return c.JSON(response.AuthSuccess{Token: res})
+	return c.JSON(response.AuthSuccess{Token: u.jwt.Sign(res)})
 }
 
 func (u User) LoginWithKey(c *fiber.Ctx) error {
@@ -61,7 +62,7 @@ func (u User) LoginWithKey(c *fiber.Ctx) error {
 	if err.IsError() {
 		return c.Status(err.Status).JSON(response.NewErrors(err))
 	}
-	return c.JSON(response.AuthSuccess{Token: res})
+	return c.JSON(response.AuthSuccess{Token: u.jwt.Sign(res)})
 }
 
 func (u User) Register(c *fiber.Ctx) error {
@@ -75,6 +76,5 @@ func (u User) Register(c *fiber.Ctx) error {
 	if err.IsError() {
 		return c.Status(err.Status).JSON(response.NewErrors(err))
 	}
-	// add token generator here
-	return c.JSON(response.AuthSuccess{Token: res})
+	return c.JSON(response.AuthSuccess{Token: u.jwt.Sign(res)})
 }
