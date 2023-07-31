@@ -2,7 +2,7 @@ package response
 
 import (
 	"errors"
-	"github.com/punkestu/theunderground-auth/internal/entity"
+	"github.com/punkestu/theunderground-auth/internal/entity/object"
 	"strings"
 )
 
@@ -19,7 +19,7 @@ type Errors struct {
 	Errors []Error `json:"errors"`
 }
 
-func NewErrors(theError entity.Error) Errors {
+func NewErrors(theError object.Error) Errors {
 	var theErrors Errors
 	for _, err := range theError.Errors {
 		e := strings.Split(err.Error(), ":")

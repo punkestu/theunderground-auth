@@ -9,13 +9,13 @@ type Jwt struct {
 	mock.Mock
 }
 
-// Sign provides a mock function with given fields: payload
-func (_m *Jwt) Sign(payload interface{}) string {
-	ret := _m.Called(payload)
+// Parse provides a mock function with given fields: token
+func (_m *Jwt) Parse(token string) string {
+	ret := _m.Called(token)
 
 	var r0 string
-	if rf, ok := ret.Get(0).(func(interface{}) string); ok {
-		r0 = rf(payload)
+	if rf, ok := ret.Get(0).(func(string) string); ok {
+		r0 = rf(token)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
@@ -23,15 +23,15 @@ func (_m *Jwt) Sign(payload interface{}) string {
 	return r0
 }
 
-// Validate provides a mock function with given fields: token
-func (_m *Jwt) Validate(token string) bool {
-	ret := _m.Called(token)
+// Sign provides a mock function with given fields: payload
+func (_m *Jwt) Sign(payload string) string {
+	ret := _m.Called(payload)
 
-	var r0 bool
-	if rf, ok := ret.Get(0).(func(string) bool); ok {
-		r0 = rf(token)
+	var r0 string
+	if rf, ok := ret.Get(0).(func(string) string); ok {
+		r0 = rf(payload)
 	} else {
-		r0 = ret.Get(0).(bool)
+		r0 = ret.Get(0).(string)
 	}
 
 	return r0

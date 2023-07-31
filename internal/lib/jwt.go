@@ -1,6 +1,6 @@
 package lib
 
 type Jwt interface {
-	Sign(payload any) string
-	Validate(token string) bool
+	Sign(payload string) string
+	Parse(token string) string
 }

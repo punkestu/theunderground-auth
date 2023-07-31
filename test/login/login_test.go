@@ -2,12 +2,12 @@ package login
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/punkestu/theunderground-auth/internal/entity"
+	"github.com/punkestu/theunderground-auth/internal/entity/mocks"
+	"github.com/punkestu/theunderground-auth/internal/entity/object"
 	"github.com/punkestu/theunderground-auth/internal/entity/request"
 	"github.com/punkestu/theunderground-auth/internal/entity/response"
 	"github.com/punkestu/theunderground-auth/internal/handler"
 	mocks2 "github.com/punkestu/theunderground-auth/internal/lib/mocks"
-	"github.com/punkestu/theunderground-auth/internal/repo/mocks"
 	"github.com/punkestu/theunderground-auth/internal/usecase"
 	"github.com/punkestu/theunderground-auth/test/util"
 	"github.com/stretchr/testify/assert"
@@ -18,9 +18,9 @@ import (
 const endPoint = "/login"
 
 var app *fiber.App
-var r *mocks.Repo
+var e *mocks.Entity
 var jwt *mocks2.Jwt
-var dummyUser1 = &entity.User{
+var dummyUser1 = &object.User{
 	ID:       "1234",
 	Username: "minerva",
 	Email:    "test@mail.com",
@@ -32,12 +32,16 @@ var IdentifierNotFound = response.Error{
 	Field:   "Identifier",
 	Message: "Identifier not found",
 }
+var PasswordIsWrong = response.Error{
+	Field:   "Password",
+	Message: "Password is wrong",
+}
 
 func TestLogin(t *testing.T) {
 	app = fiber.New()
-	r = mocks.NewRepo(t)
 	jwt = mocks2.NewJwt(t)
-	u := usecase.NewUserUsecase(r)
+	e = mocks.NewEntity(t)
+	u := usecase.NewUserUsecase(e)
 	h := handler.NewUserHandler(u, jwt)
 	app.Post(endPoint, h.Login)
 	t.Run("Success Using Email", LoginWithEmailSuccess)
@@ -47,7 +51,7 @@ func TestLogin(t *testing.T) {
 }
 
 func LoginWrongPasswordFailed(t *testing.T) {
-	r.On("GetByUsernameOrEmail", "minerva").Return(&dummyUser1, entity.NoError())
+	e.On("Login", "minerva", "test123").Return("", object.OneError(http.StatusUnauthorized, PasswordIsWrong.GenError()))
 	req, err := util.SendRequest(http.MethodPost, endPoint, request.Login{
 		Identifier: "minerva",
 		Password:   "test123",
@@ -56,7 +60,7 @@ func LoginWrongPasswordFailed(t *testing.T) {
 
 	res, err := app.Test(req)
 	assert.Nil(t, err)
-	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
 	var resBody response.Errors
 	err = util.GetBody(res, &resBody, nil)
@@ -67,7 +71,7 @@ func LoginWrongPasswordFailed(t *testing.T) {
 }
 
 func LoginUserNotFoundFailed(t *testing.T) {
-	r.On("GetByUsernameOrEmail", "min").Return(nil, entity.OneError(http.StatusBadRequest, IdentifierNotFound.GenError()))
+	e.On("Login", "min", "test1234").Return("", object.OneError(http.StatusUnauthorized, IdentifierNotFound.GenError()))
 	req, err := util.SendRequest(http.MethodPost, endPoint, request.Login{
 		Identifier: "min",
 		Password:   "test1234",
@@ -76,7 +80,7 @@ func LoginUserNotFoundFailed(t *testing.T) {
 
 	res, err := app.Test(req)
 	assert.Nil(t, err)
-	assert.Equal(t, http.StatusBadRequest, res.StatusCode)
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
 	var resBody response.Errors
 	err = util.GetBody(res, &resBody, nil)
@@ -88,9 +92,9 @@ func LoginUserNotFoundFailed(t *testing.T) {
 }
 
 func LoginWithEmailSuccess(t *testing.T) {
-	r.On("GetByUsernameOrEmail", "test@mail.com").Return(
-		dummyUser1,
-		entity.NoError(),
+	e.On("Login", "test@mail.com", "test1234").Return(
+		dummyUser1.ID+"|"+dummyUser1.Key,
+		object.NoError(),
 	)
 	jwt.On("Sign", dummyUser1.ID+"|"+dummyUser1.Key).Return(dummyToken)
 	req, err := util.SendRequest(http.MethodPost, endPoint, request.Login{
@@ -110,9 +114,9 @@ func LoginWithEmailSuccess(t *testing.T) {
 }
 
 func LoginWithUsernameSuccess(t *testing.T) {
-	r.On("GetByUsernameOrEmail", "minerva").Return(
-		dummyUser1,
-		entity.NoError(),
+	e.On("Login", "minerva", "test1234").Return(
+		dummyUser1.ID+"|"+dummyUser1.Key,
+		object.NoError(),
 	)
 	jwt.On("Sign", dummyUser1.ID+"|"+dummyUser1.Key).Return(dummyToken)
 	req, err := util.SendRequest(http.MethodPost, endPoint, request.Login{

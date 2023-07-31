@@ -2,11 +2,11 @@ package loginWithKey
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/punkestu/theunderground-auth/internal/entity"
+	"github.com/punkestu/theunderground-auth/internal/entity/mocks"
+	"github.com/punkestu/theunderground-auth/internal/entity/object"
 	"github.com/punkestu/theunderground-auth/internal/entity/response"
 	"github.com/punkestu/theunderground-auth/internal/handler"
 	mocks2 "github.com/punkestu/theunderground-auth/internal/lib/mocks"
-	"github.com/punkestu/theunderground-auth/internal/repo/mocks"
 	"github.com/punkestu/theunderground-auth/internal/usecase"
 	"github.com/punkestu/theunderground-auth/test/util"
 	"github.com/stretchr/testify/assert"
@@ -17,9 +17,9 @@ import (
 const endPoint = "/key"
 
 var app *fiber.App
-var r *mocks.Repo
+var e *mocks.Entity
 var jwt *mocks2.Jwt
-var dummyUser1 = &entity.User{
+var dummyUser1 = &object.User{
 	ID:       "1234",
 	Username: "minerva",
 	Email:    "test@mail.com",
@@ -34,9 +34,9 @@ var IdentifierNotFound = response.Error{
 
 func TestLoginWithKey(t *testing.T) {
 	app = fiber.New()
-	r = mocks.NewRepo(t)
 	jwt = mocks2.NewJwt(t)
-	u := usecase.NewUserUsecase(r)
+	e = mocks.NewEntity(t)
+	u := usecase.NewUserUsecase(e)
 	h := handler.NewUserHandler(u, jwt)
 	app.Post(endPoint, h.LoginWithKey)
 	t.Run("Success", Success)
@@ -44,12 +44,12 @@ func TestLoginWithKey(t *testing.T) {
 }
 
 func KeyNotFoundFailed(t *testing.T) {
-	r.On("GetByKey", "user123").Return(nil, entity.OneError(http.StatusNotFound, IdentifierNotFound.GenError()))
+	e.On("LoginWithKey", "user123").Return("", object.OneError(http.StatusUnauthorized, IdentifierNotFound.GenError()))
 	req, err := util.SendFileRequest(http.MethodPost, endPoint, "wrongCred.key", nil)
 
 	res, err := app.Test(req)
 	assert.Nil(t, err)
-	assert.Equal(t, http.StatusNotFound, res.StatusCode)
+	assert.Equal(t, http.StatusUnauthorized, res.StatusCode)
 
 	var resBody response.Errors
 	err = util.GetBody(res, &resBody, nil)
@@ -57,7 +57,7 @@ func KeyNotFoundFailed(t *testing.T) {
 }
 
 func Success(t *testing.T) {
-	r.On("GetByKey", "user1234").Return(dummyUser1, entity.NoError())
+	e.On("LoginWithKey", "user1234").Return(dummyUser1.ID+"|"+dummyUser1.Key, object.NoError())
 	req, err := util.SendFileRequest(http.MethodPost, endPoint, "credential.key", nil)
 	jwt.On("Sign", dummyUser1.ID+"|"+dummyUser1.Key).Return(dummyToken)
 

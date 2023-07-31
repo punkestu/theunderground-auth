@@ -1,10 +1,12 @@
 package repo
 
-import "github.com/punkestu/theunderground-auth/internal/entity"
+import (
+	"github.com/punkestu/theunderground-auth/internal/entity/object"
+)
 
 type Repo interface {
-	GetByID(string) (*entity.User, entity.Error)
-	GetByUsernameOrEmail(string) (*entity.User, entity.Error)
-	GetByKey(string) (*entity.User, entity.Error)
-	Create(entity.User) (string, entity.Error)
+	GetByID(string) (object.User, error)
+	GetByUsernameOrEmail(string) (object.User, error)
+	GetByKey(string) (object.User, error)
+	Create(object.User) error
 }
